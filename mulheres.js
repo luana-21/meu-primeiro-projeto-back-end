@@ -1,35 +1,98 @@
-const express = require("express")
-const router = express.Router()
+const express = require("express") // aqui estou iniciando o express 
+const router = express.Router() // aqui estou configurando a primeira parte da rota
+const cors = require('cors')// aqui estou trazendo o pacote cors que permite consumir essa api no front-end
 
-const app = express()
-const porta = 3333
+const conectaBancoDeDados = require('./bancoDeDados')// aqui estou ligando ao arquivo bancoDeDados
+conectaBancoDeDados() // aqui estou chamando a função que conecta o banco de dados
 
-const mulheres = [
-    {
-        nome: 'Luana Silva da Cruz',
-        imagem: 'https://media.licdn.com/dms/image/v2/C4D03AQHKHu8OmviPsQ/profile-displayphoto-shrink_400_400/profile-displayphoto-shrink_400_400/0/1646090814681?e=1732147200&v=beta&t=vwxjopuIJHrRvbujkADJInir-3IEwp_wA_hsL7ta7Ks',
-        minibio: 'QA, estudando para ser denvolvedora e mãe'
-    },
-        
-        {
-            nome: 'Karina Machado da Silva',
-            imagem: 'https://www.linkedin.com/in/karina-machado-da-silva-74a91ba3?miniProfileUrn=urn%3Ali%3Afs_miniProfile%3AACoAABYG-2oB0Ol1RMb9fdaufsSxoRypVNyK0mQ&lipi=urn%3Ali%3Apage%3Ad_flagship3_search_srp_all%3Brvl0wr1cQDOdIJV3zo8xsw%3D%3D',
-            minibio: 'QA, com experiência em análise, desenvolvimento, execução de testes'
-        },
+const Mulher = require('./mulherModel')
 
-        {
-            nome: 'Heimy Dias',
-            imagem: 'https://www.linkedin.com/in/heimydias?miniProfileUrn=urn%3Ali%3Afs_miniProfile%3AACoAADINxzoBbZ5R204iWs5J6xBbMn-GJSK60Tg&lipi=urn%3Ali%3Apage%3Ad_flagship3_search_srp_all%3Buxc9R9zoTjKF%2FzncQiEPAw%3D%3D',
-            minibio: 'Backend Developer Jr, JavaScript, Spring Boot, Java, SQL'
-        }
-]
+const app = express() // aqui estou iniciando o app
+app.use(express.json())
+app.use(cors())
 
-function mostraMulheres(request, response) {
-response.json(mulheres)
+const porta = 3333 // aqui estou criando a porta 
+
+// GET
+async function mostraMulheres(request, response) {
+try{
+const mulheresVindasDoBancoDeDados = await Mulher.find()
+
+response.json(mulheresVindasDoBancoDeDados)
+}catch(erro){
+console.log(erro)
 }
 
+}
+// POST
+async function criaMulher(request, response) {
+    const novaMulher = new Mulher({ 
+    nome: request.body.nome, 
+    imagem: request.body.imagem, 
+    minibio: request.body.minibio,
+    citacao: request.body.citacao
+    })
+
+    try{
+        const mulherCriada = await novaMulher.save()
+        response.status(201).json(mulherCriada)
+    }catch(erro){
+        console.log(erro)
+    }
+    
+
+}
+
+// PATCH
+async function corrigeMulher(request, response) {
+try{
+const mulherEncontrada = await Mulher.findById(request.params.id)
+if (request.body.nome) {
+    mulherEncontrada.nome = request.body.nome
+    }
+    
+      if (request.body.minibio) {
+    mulherEncontrada.minibio = request.body.minibio
+    }
+    
+      if (request.body.imagem) {
+    mulherEncontrada.imagem = request.body.imagem
+      }
+
+      if (request.body.citacao){
+        mulherEncontrada.citacao = request.body.citacao
+      }
+
+      const mulherAtualizaNoBancoDeDados = await mulherEncontrada.save()
+
+      response.json(mulherAtualizaNoBancoDeDados) // listaMulheres
+}catch(erro){
+    console.log(erro)
+}
+    
+}
+
+// DELETE
+async function deletaMulher(request, response) {
+  try{
+await Mulher.findByIdAndDelete(request.params.id)
+response.json({mensagem: 'Mulher deletada com sucesso!'})
+  }catch(erro){
+    console.log(erro)
+  }
+      
+    }
+
+
+//PORTA
 function mostraPorta() {
     console.log("Servidor criado e rodando na porta ", porta)
 }
-app.use(router.get('/mulheres', mostraMulheres))
-app.listen(porta, mostraPorta)
+app.use(router.get('/mulheres', mostraMulheres)) // configurei a rota GET /mulheres
+app.use(router.post('/mulheres', criaMulher)) // configurei a rota POST /mulheres
+app.use(router.patch('/mulheres/:id', corrigeMulher)) // configurei a rota PATCH /mulheres/:id
+app.use(router.delete('/mulheres/:id', deletaMulher)) // configurei a rota DELETE /mulheres/:id
+
+
+
+app.listen(porta, mostraPorta) // servidor ouvindo a porta 
