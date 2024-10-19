@@ -12,7 +12,7 @@ app.use(express.json())
 app.use(cors())
 
 const porta = 3333 // aqui estou criando a porta 
-
+  
 // GET
 async function mostraMulheres(request, response) {
 try{
